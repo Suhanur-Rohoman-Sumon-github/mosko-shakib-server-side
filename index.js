@@ -3,14 +3,13 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors')
 const stripe = require('stripe')('sk_test_51NECFwIaZAuMRrsmPGQtyskxVAYn4YGeXwtnXMWNEgyHVg7fsPeez8rsTf8iLoUGApMquKrSwUezfVtZJKnoUyuB00ZhnCIIM6')
 const port = process.env.PORT || 5000
-
 const app = express()
 app.use(express.json())
 app.use(cors())
+require('dotenv').config()
 
 
-// TODO:add env file
-const uri = "mongodb+srv://mosko-shakib:S4MTB4k4zLQrSCrz@cluster0.eepi0pq.mongodb.net/?retryWrites=true&w=majority";
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.eepi0pq.mongodb.net/?retryWrites=true&w=majority`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -21,6 +20,17 @@ const client = new MongoClient(uri, {
     }
 });
 
+
+
+const verifyjwt = (req, res, next) => {
+    const athorization = req.headars.athorization
+    if (!athorization) {
+        return res.status(401).send({ error: true, massage: 'unathorizeduser' })
+    }
+    const token = athorization.split(' ')[1]
+    jwt.verify(token,)
+}
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -29,64 +39,69 @@ async function run() {
         const instactors = client.db('mosko-shakib').collection('our-instactor')
         const carts = client.db('mosko-shakib').collection('carts')
         // carts post start here
-        app.post('/carts',async(req,res)=>{
+        app.post('/carts', async (req, res) => {
             const body = req.body
             const result = await carts.insertOne(body)
             res.send(result)
         })
         // carts get oparetion here
-        app.get('/carts',async(req,res)=>{
+        app.get('/carts', async (req, res) => {
             const email = req.query.email
-            const quirey = {email:email}
+            const quirey = { email: email }
             const result = await carts.find(quirey).toArray()
             res.send(result)
         })
         // get specific card data 
-        app.get('/carts/:id',async(req,res)=>{
+        app.get('/carts/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await carts.findOne(query)
             res.send(result)
         })
         // carts deleted action start here :specifc card delete
-        app.delete('/carts/:id',async(req,res)=>{
+        app.delete('/carts/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id:new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await carts.deleteOne(query)
             res.send(result)
         })
         // payment method intrigation start here 
-        app.post('/creat-payment-intrigation',async(req,res)=>{
-            const {price} = req.body
+        app.post('/creat-payment-intrigation', async (req, res) => {
+            const { price } = req.body
             const amount = price * 100;
             const paymentIntent = await stripe.paymentIntents.create({
-                amount:amount,
+                amount: amount,
                 currency: "usd",
-                payment_method_types :[
+                payment_method_types: [
                     'card'
                 ]
             })
             res.send({
-                clientSecret : paymentIntent.client_secret 
+                clientSecret: paymentIntent.client_secret
             })
         })
 
+
+        
+
+       
+
         // all classes data here
-        app.get('/classes',async(req,res)=>{
+        app.get('/classes', async (req, res) => {
             const result = await classes.find().toArray()
             res.send(result)
-            
+
         })
         // popular classes data here
-        app.get('/popular-classes',async(req,res)=>{
+        app.get('/popular-classes', async (req, res) => {
             const result = await classes.find().sort({ totalStudents: -1 }).limit(6).toArray()
             res.send(result)
-            
+
         })
-        app.get('/instactors',async(req,res)=>{
+        app.get('/instactors', async (req, res) => {
             const result = await instactors.find().toArray()
             res.send(result)
-            
+
         })
 
 
@@ -101,7 +116,7 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/',  (req, res) => {
+app.get('/', (req, res) => {
     res.send('vai coltesi')
 })
 app.listen(port, () => {
