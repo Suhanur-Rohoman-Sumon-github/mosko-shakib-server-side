@@ -1,6 +1,7 @@
 const express = require('express')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors')
+const stripe = require('stripe')('sk_test_51NECFwIaZAuMRrsmPGQtyskxVAYn4YGeXwtnXMWNEgyHVg7fsPeez8rsTf8iLoUGApMquKrSwUezfVtZJKnoUyuB00ZhnCIIM6')
 const port = process.env.PORT || 5000
 
 const app = express()
@@ -44,15 +45,30 @@ async function run() {
         app.get('/carts/:id',async(req,res)=>{
             const id = req.params.id
             const query = {_id: new ObjectId(id)}
-            const result = carts.findOne(query)
+            const result = await carts.findOne(query)
             res.send(result)
         })
-        // carts deleted action start here
+        // carts deleted action start here :specifc card delete
         app.delete('/carts/:id',async(req,res)=>{
             const id = req.params.id
             const query = {_id:new ObjectId(id)}
-            const result = carts.deleteOne(query)
+            const result = await carts.deleteOne(query)
             res.send(result)
+        })
+        // payment method intrigation start here 
+        app.post('/creat-payment-intrigation',async(req,res)=>{
+            const {price} = req.body
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount:amount,
+                currency: "usd",
+                payment_method_types :[
+                    'card'
+                ]
+            })
+            res.send({
+                clientSecret : paymentIntent.client_secret 
+            })
         })
 
         // all classes data here
