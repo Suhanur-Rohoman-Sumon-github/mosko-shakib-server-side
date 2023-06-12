@@ -115,22 +115,17 @@ async function run() {
         })
         
         // instractor class start there
-        app.post('/instractor-class',async(req,res)=>{
+        app.post('/instractor-class', async(req,res)=>{
             const classes = req.body
             const result = await instractorClass.insertOne(classes)
             res.send(result)
         })
         // instractor classes get method there
-        app.get('/instractor-class',async(req,res)=>{
+        app.get('/instractor-class', async(req,res)=>{
             const result = await instractorClass.find().toArray()
             res.send(result)
         })
-        // get specofic instrator class
-        // app.get('/instractor-class/:id',async(req,res)=>{
-        //     const id = req.params.id
-        //     const 
-        // })
-        // instractors class update pending for aprove
+        // instractor aprove method there
         app.patch('/instractor-class/aprove/:id',async(req,res)=>{
             const id = req.params.id
             const filter = {_id:new ObjectId(id)}
@@ -142,12 +137,28 @@ async function run() {
             const result = await instractorClass.updateOne(filter,updatedDoc)
             res.send(result)
         })
+        // instractor deney method there
         app.patch('/instractor-class/deney/:id',async(req,res)=>{
             const id = req.params.id
             const filter = {_id:new ObjectId(id)}
             const updatedDoc ={
                 $set:{
                     status:'deney'
+                }
+            }
+            const result = await instractorClass.updateOne(filter,updatedDoc)
+            res.send(result)
+        })
+        // instractor feedback method there
+        app.post('/feedback/:id',async(req,res)=>{
+            const id = req.params.id
+            const feedbackData = req.body.feedbackData
+            console.log(feedbackData)
+
+            const filter = {_id:new ObjectId(id)}
+            const updatedDoc ={
+                $push:{
+                    feedbackData : feedbackData
                 }
             }
             const result = await instractorClass.updateOne(filter,updatedDoc)
