@@ -125,6 +125,34 @@ async function run() {
             const result = await instractorClass.find().toArray()
             res.send(result)
         })
+        // get specofic instrator class
+        // app.get('/instractor-class/:id',async(req,res)=>{
+        //     const id = req.params.id
+        //     const 
+        // })
+        // instractors class update pending for aprove
+        app.patch('/instractor-class/aprove/:id',async(req,res)=>{
+            const id = req.params.id
+            const filter = {_id:new ObjectId(id)}
+            const updatedDoc ={
+                $set:{
+                    status:'aprove'
+                }
+            }
+            const result = await instractorClass.updateOne(filter,updatedDoc)
+            res.send(result)
+        })
+        app.patch('/instractor-class/deney/:id',async(req,res)=>{
+            const id = req.params.id
+            const filter = {_id:new ObjectId(id)}
+            const updatedDoc ={
+                $set:{
+                    status:'deney'
+                }
+            }
+            const result = await instractorClass.updateOne(filter,updatedDoc)
+            res.send(result)
+        })
         // carts post start here
         app.post('/carts', async (req, res) => {
             const body = req.body
