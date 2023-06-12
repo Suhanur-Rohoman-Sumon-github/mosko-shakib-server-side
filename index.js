@@ -1,6 +1,7 @@
 const express = require('express')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const cors = require('cors')
+const cors = require('cors');
+const jwt = require('jsonwebtoken');
 const stripe = require('stripe')('sk_test_51NECFwIaZAuMRrsmPGQtyskxVAYn4YGeXwtnXMWNEgyHVg7fsPeez8rsTf8iLoUGApMquKrSwUezfVtZJKnoUyuB00ZhnCIIM6')
 const port = process.env.PORT || 5000
 const app = express()
@@ -23,13 +24,20 @@ const client = new MongoClient(uri, {
 
 
 const verifyjwt = (req, res, next) => {
-    const athorization = req.headars.athorization
-    if (!athorization) {
-        return res.status(401).send({ error: true, massage: 'unathorizeduser' })
+    const authorization = req.headers.authorization;
+    if (!authorization) {
+        return res.status(401).send({ error: true, message: 'Unauthorized user' });
     }
-    const token = athorization.split(' ')[1]
-    jwt.verify(token,)
-}
+    const token = authorization.split(' ')[1];
+    jwt.verify(token, process.env.JSON_WEBTOKEN, (error, decoded) => {
+        if (error) {
+            res.status(403).send({ error: true, message: 'Unauthorized' });
+        }
+        req.decoded = decoded;
+        next();
+    });
+};
+
 
 async function run() {
     try {
@@ -38,6 +46,31 @@ async function run() {
         const classes = client.db('mosko-shakib').collection('popular-corses')
         const instactors = client.db('mosko-shakib').collection('our-instactor')
         const carts = client.db('mosko-shakib').collection('carts')
+        const instractorClass = client.db('mosko-shakib').collection('instractorClass')
+        const userses = client.db('mosko-shakib').collection('instractorClass')
+        // get jwt token here
+        app.post('/jwt',(req,res)=>{
+            const user = req.body
+            const token = jwt.sign(user,process.env.JSON_WEBTOKEN,{expiresIn: '2h'})
+            res.send({token})
+        })
+        // user start here
+        app.post('/users',async(req,res)=>{
+            const users = req.body
+            const result = await userses.insertOne(users)
+            res.send(result)
+        })
+        // instractor class start there
+        app.post('/instractor-class',async(req,res)=>{
+            const classes = req.body
+            const result = await instractorClass.insertOne(classes)
+            res.send(result)
+        })
+        // instractor classes get method there
+        app.get('/instractor-class',async(req,res)=>{
+            const result = await instractorClass.find().toArray()
+            res.send(result)
+        })
         // carts post start here
         app.post('/carts', async (req, res) => {
             const body = req.body
@@ -54,6 +87,7 @@ async function run() {
         // get specific card data 
         app.get('/carts/:id', async (req, res) => {
             const id = req.params.id
+            
             const query = { _id: new ObjectId(id) }
             const result = await carts.findOne(query)
             res.send(result)
@@ -80,11 +114,6 @@ async function run() {
                 clientSecret: paymentIntent.client_secret
             })
         })
-
-
-        
-
-       
 
         // all classes data here
         app.get('/classes', async (req, res) => {
