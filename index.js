@@ -48,32 +48,41 @@ async function run() {
         const carts = client.db('mosko-shakib').collection('carts')
         const instractorClass = client.db('mosko-shakib').collection('instractorClass')
         const userses = client.db('mosko-shakib').collection('users')
+        const payments = client.db('mosko-shakib').collection('payment')
         // get jwt token here
-        app.post('/jwt',(req,res)=>{
-            const user = req.body
-            const token = jwt.sign(user,process.env.JSON_WEBTOKEN,{expiresIn: '2h'})
-            res.send({token})
-        })
-        // user start here
-        app.post('/users',async(req,res)=>{
-            const users = req.body
-            const query = {email:users.email}
-            const existingUser = await userses.findOne(query)
-            if(existingUser){
-                res.send({massage:'vai already added'})
-            }
-            const result = await userses.insertOne(users)
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.JSON_WEBTOKEN, { expiresIn: '2h' });
+            res.send({ token });
+          });
+
+          app.post('/payments',async(req,res)=>{
+            const payment = req.body
+            const result = await payments.insertOne(payment)
             res.send(result)
-        })
+          })
+          
+        // user start here
+        app.post('/users', async (req, res) => {
+            const users = req.body;
+            const query = { email: users.email };
+            const existingUser = await userses.findOne(query);
+            if (existingUser) {
+              return res.send({ message: 'vai already added' });
+            }
+            const result = await userses.insertOne(users);
+            res.send(result);
+          });
+          
         // user information get there
-        app.get('/users',async(req,res)=>{
+        app.get('/users', verifyjwt, async (req, res) => {
             const result = await userses.find().toArray()
             res.send(result)
         })
         // get specific user data
-        app.get('/users/:id',async(req,res)=>{
+        app.get('/users/:id', async (req, res) => {
             const id = req.params.id
-            const query = {_id: new ObjectId(id)}
+            const query = { _id: new ObjectId(id) }
             const result = await userses.findOne(query)
             res.send(result)
         })
@@ -95,92 +104,102 @@ async function run() {
             }
         });
         // update user to instector
-        app.patch('/users/instractors/:id',async(req,res)=>{
+        app.patch('/users/instractors/:id', async (req, res) => {
             const id = req.params.id
-            const filter = {_id:new ObjectId(id)}
-            const updatedDoc ={
-                $set:{
-                    rules:'instractor'
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    rules: 'instractor'
                 }
 
             }
-            try{
-                const result = userses.updateOne(filter,updatedDoc)
+            try {
+                const result = userses.updateOne(filter, updatedDoc)
                 res.send(result)
             }
-            catch(error){
+            catch (error) {
                 console.error(error)
                 res.status(500).send('internal server error')
             }
         })
-        
+
         // instractor class start there
-        app.post('/instractor-class', async(req,res)=>{
+        app.post('/instractor-class',  async (req, res) => {
             const classes = req.body
             const result = await instractorClass.insertOne(classes)
             res.send(result)
         })
         // instractor classes get method there
-        app.get('/instractor-class', async(req,res)=>{
-            const result = await instractorClass.find().toArray()
-            res.send(result)
+        app.get('/instractor-class',verifyjwt,  async (req, res) => {
+            try {
+                const result = await instractorClass.find().toArray()
+                res.send(result)
+            }
+            catch(error){
+                console.error(error)
+                res.status(401).send({massage:'this is error'})
+            }
         })
         // instractor aprove method there
-        app.patch('/instractor-class/aprove/:id',async(req,res)=>{
+        app.patch('/instractor-class/aprove/:id', async (req, res) => {
             const id = req.params.id
-            const filter = {_id:new ObjectId(id)}
-            const updatedDoc ={
-                $set:{
-                    status:'aprove'
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    status: 'aprove'
                 }
             }
-            const result = await instractorClass.updateOne(filter,updatedDoc)
+            const result = await instractorClass.updateOne(filter, updatedDoc)
             res.send(result)
         })
         // instractor deney method there
-        app.patch('/instractor-class/deney/:id',async(req,res)=>{
+        app.patch('/instractor-class/deney/:id', async (req, res) => {
             const id = req.params.id
-            const filter = {_id:new ObjectId(id)}
-            const updatedDoc ={
-                $set:{
-                    status:'deney'
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $set: {
+                    status: 'deney'
                 }
             }
-            const result = await instractorClass.updateOne(filter,updatedDoc)
+            const result = await instractorClass.updateOne(filter, updatedDoc)
             res.send(result)
         })
         // instractor feedback method there
-        app.post('/feedback/:id',async(req,res)=>{
+        app.post('/feedback/:id', async (req, res) => {
             const id = req.params.id
             const feedbackData = req.body.feedbackData
-            console.log(feedbackData)
-
-            const filter = {_id:new ObjectId(id)}
-            const updatedDoc ={
-                $push:{
-                    feedbackData : feedbackData
+            const filter = { _id: new ObjectId(id) }
+            const updatedDoc = {
+                $push: {
+                    feedbackData: feedbackData
                 }
             }
-            const result = await instractorClass.updateOne(filter,updatedDoc)
+            const result = await instractorClass.updateOne(filter, updatedDoc)
             res.send(result)
         })
         // carts post start here
-        app.post('/carts', async (req, res) => {
+        app.post('/carts',  async (req, res) => {
             const body = req.body
             const result = await carts.insertOne(body)
             res.send(result)
         })
-        // carts get oparetion here
-        app.get('/carts', async (req, res) => {
-            const email = req.query.email
-            const quirey = { email: email }
-            const result = await carts.find(quirey).toArray()
-            res.send(result)
-        })
+        // carts get specific carts data oparetion here
+        app.get('/carts',  async (req, res) => {
+            try {
+              const email = req.query.email;
+              const query = { email: email };
+              const result = await carts.find(query).toArray();
+              res.send(result);
+            } catch (error) {
+              console.error(error);
+              res.status(500).send('Internal Server Error');
+            }
+          });
+          
         // get specific card data 
         app.get('/carts/:id', async (req, res) => {
             const id = req.params.id
-            
+
             const query = { _id: new ObjectId(id) }
             const result = await carts.findOne(query)
             res.send(result)
@@ -192,10 +211,17 @@ async function run() {
             const result = await carts.deleteOne(query)
             res.send(result)
         })
+        // delete carts a data after payment
+        app.delete('/carts/pyment/:id', async (req, res) => {
+            const id = req.params.id
+            const query = { _id: new ObjectId(id) }
+            const result = await carts.deleteOne(query)
+            res.send(result)
+        })
         // payment method intrigation start here 
         app.post('/creat-payment-intrigation', async (req, res) => {
-            const { price } = req.body
-            const amount = price * 100;
+            const { payment } = req.body
+            const amount = parseFloat(payment) * 100;
             const paymentIntent = await stripe.paymentIntents.create({
                 amount: amount,
                 currency: "usd",
