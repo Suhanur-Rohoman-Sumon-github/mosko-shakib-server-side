@@ -47,7 +47,7 @@ async function run() {
         const instactors = client.db('mosko-shakib').collection('our-instactor')
         const carts = client.db('mosko-shakib').collection('carts')
         const instractorClass = client.db('mosko-shakib').collection('instractorClass')
-        const userses = client.db('mosko-shakib').collection('instractorClass')
+        const userses = client.db('mosko-shakib').collection('users')
         // get jwt token here
         app.post('/jwt',(req,res)=>{
             const user = req.body
@@ -57,9 +57,63 @@ async function run() {
         // user start here
         app.post('/users',async(req,res)=>{
             const users = req.body
+            const query = {email:users.email}
+            const existingUser = await userses.findOne(query)
+            if(existingUser){
+                res.send({massage:'vai already added'})
+            }
             const result = await userses.insertOne(users)
             res.send(result)
         })
+        // user information get there
+        app.get('/users',async(req,res)=>{
+            const result = await userses.find().toArray()
+            res.send(result)
+        })
+        // get specific user data
+        app.get('/users/:id',async(req,res)=>{
+            const id = req.params.id
+            const query = {_id: new ObjectId(id)}
+            const result = await userses.findOne(query)
+            res.send(result)
+        })
+        // update user to admin
+        app.patch('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updatedDoc = {
+                $set: {
+                    rules: 'admin'
+                }
+            };
+            try {
+                const result = await userses.updateOne(filter, updatedDoc);
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+        // update user to instector
+        app.patch('/users/instractors/:id',async(req,res)=>{
+            const id = req.params.id
+            const filter = {_id:new ObjectId(id)}
+            const updatedDoc ={
+                $set:{
+                    rules:'instractor'
+                }
+
+            }
+            try{
+                const result = userses.updateOne(filter,updatedDoc)
+                res.send(result)
+            }
+            catch(error){
+                console.error(error)
+                res.status(500).send('internal server error')
+            }
+        })
+        
         // instractor class start there
         app.post('/instractor-class',async(req,res)=>{
             const classes = req.body
