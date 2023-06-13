@@ -55,6 +55,17 @@ async function run() {
             const token = jwt.sign(user, process.env.JSON_WEBTOKEN, { expiresIn: '2h' });
             res.send({ token });
         });
+        // verifu admin
+        app.get('/users/admin/:email',  async (req, res) => {
+            const email = req.params.email
+            // if (req.decoded.email !== email) {
+            //     res.send({ admin: false })
+            // }
+            const query = { emails: email }
+            const user = await userses.findOne(query)
+            const result = { rules: user?.rules === 'admin' }
+            res.send(result)
+        })
         //   set data after sucssesfully erroled a class
         app.post('/payments', async (req, res) => {
             const payment = req.body
@@ -73,17 +84,7 @@ async function run() {
                 res.status(500).send('Internal Server Error');
             }
         });
-        app.get('/payments', async (req, res) => {
-            try {
-                const email = req.query.email;
-                const query = { email: email };
-                const result = await paymentses.find().toArray();
-                res.send(result);
-            } catch (error) {
-                console.error(error);
-                res.status(500).send('Internal Server Error');
-            }
-        });
+    
 
         // delete a specofoc course from 
 
