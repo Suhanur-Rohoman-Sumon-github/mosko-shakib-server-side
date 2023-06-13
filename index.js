@@ -48,32 +48,57 @@ async function run() {
         const carts = client.db('mosko-shakib').collection('carts')
         const instractorClass = client.db('mosko-shakib').collection('instractorClass')
         const userses = client.db('mosko-shakib').collection('users')
-        const payments = client.db('mosko-shakib').collection('payment')
+        const paymentses = client.db('mosko-shakib').collection('payment')
         // get jwt token here
         app.post('/jwt', (req, res) => {
             const user = req.body;
             const token = jwt.sign(user, process.env.JSON_WEBTOKEN, { expiresIn: '2h' });
             res.send({ token });
-          });
-
-          app.post('/payments',async(req,res)=>{
+        });
+        //   set data after sucssesfully erroled a class
+        app.post('/payments', async (req, res) => {
             const payment = req.body
-            const result = await payments.insertOne(payment)
+            const result = await paymentses.insertOne(payment)
             res.send(result)
-          })
-          
+        })
+        //   get the secssesfuly payments data 
+        app.get('/payments', async (req, res) => {
+            try {
+                const email = req.query.email;
+                const query = { email: email };
+                const result = await paymentses.find(query).toArray();
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+        app.get('/payments', async (req, res) => {
+            try {
+                const email = req.query.email;
+                const query = { email: email };
+                const result = await paymentses.find().toArray();
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+        // delete a specofoc course from 
+
         // user start here
         app.post('/users', async (req, res) => {
             const users = req.body;
             const query = { email: users.email };
             const existingUser = await userses.findOne(query);
             if (existingUser) {
-              return res.send({ message: 'vai already added' });
+                return res.send({ message: 'vai already added' });
             }
             const result = await userses.insertOne(users);
             res.send(result);
-          });
-          
+        });
+
         // user information get there
         app.get('/users', verifyjwt, async (req, res) => {
             const result = await userses.find().toArray()
@@ -124,20 +149,20 @@ async function run() {
         })
 
         // instractor class start there
-        app.post('/instractor-class',  async (req, res) => {
+        app.post('/instractor-class', async (req, res) => {
             const classes = req.body
             const result = await instractorClass.insertOne(classes)
             res.send(result)
         })
         // instractor classes get method there
-        app.get('/instractor-class',verifyjwt,  async (req, res) => {
+        app.get('/instractor-class', verifyjwt, async (req, res) => {
             try {
                 const result = await instractorClass.find().toArray()
                 res.send(result)
             }
-            catch(error){
+            catch (error) {
                 console.error(error)
-                res.status(401).send({massage:'this is error'})
+                res.status(401).send({ massage: 'this is error' })
             }
         })
         // instractor aprove method there
@@ -178,24 +203,24 @@ async function run() {
             res.send(result)
         })
         // carts post start here
-        app.post('/carts',  async (req, res) => {
+        app.post('/carts', async (req, res) => {
             const body = req.body
             const result = await carts.insertOne(body)
             res.send(result)
         })
         // carts get specific carts data oparetion here
-        app.get('/carts',  async (req, res) => {
+        app.get('/carts', async (req, res) => {
             try {
-              const email = req.query.email;
-              const query = { email: email };
-              const result = await carts.find(query).toArray();
-              res.send(result);
+                const email = req.query.email;
+                const query = { email: email };
+                const result = await carts.find(query).toArray();
+                res.send(result);
             } catch (error) {
-              console.error(error);
-              res.status(500).send('Internal Server Error');
+                console.error(error);
+                res.status(500).send('Internal Server Error');
             }
-          });
-          
+        });
+
         // get specific card data 
         app.get('/carts/:id', async (req, res) => {
             const id = req.params.id
