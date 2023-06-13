@@ -1,13 +1,14 @@
 const express = require('express')
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const cors = require('cors');
+require('dotenv').config()
 const jwt = require('jsonwebtoken');
-const stripe = require('stripe')('sk_test_51NECFwIaZAuMRrsmPGQtyskxVAYn4YGeXwtnXMWNEgyHVg7fsPeez8rsTf8iLoUGApMquKrSwUezfVtZJKnoUyuB00ZhnCIIM6')
+const stripe = require('stripe')(`${process.env.STRIPE_SECRETE}`)
 const port = process.env.PORT || 5000
 const app = express()
 app.use(express.json())
 app.use(cors())
-require('dotenv').config()
+
 
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.eepi0pq.mongodb.net/?retryWrites=true&w=majority`;
@@ -56,16 +57,39 @@ async function run() {
             res.send({ token });
         });
         // verifu admin
-        app.get('/users/admin/:email',  async (req, res) => {
+        app.get('/users/admin/:email', async (req, res) => {
             const email = req.params.email
             // if (req.decoded.email !== email) {
             //     res.send({ admin: false })
             // }
-            const query = { emails: email }
+            const query = { email: email }
             const user = await userses.findOne(query)
-            const result = { rules: user?.rules === 'admin' }
+            const result = { admin: user?.rules === 'admin' }
             res.send(result)
         })
+        // verify instractor
+        app.get('/users/instructor/:email', async (req, res) => {
+            const email = req.params.email;
+            // if (req.decoded.email !== email) {
+            //     res.send({ admin: false })
+            // }
+            const query = { email: email };
+            const user = await userses.findOne(query);
+            const result = { instructor: user?.rules === 'instractor' }; // Fix typo here
+            res.send(result);
+        });
+        //   verufy user
+        app.get('/users/user/:email', async (req, res) => {
+            const email = req.params.email
+            // if (req.decoded.email !== email) {
+            //     res.send({ admin: false })
+            // }
+            const query = { email: email }
+            const user = await userses.findOne(query)
+            const result = { admin: user?.rules === 'user' }
+            res.send(result)
+        })
+
         //   set data after sucssesfully erroled a class
         app.post('/payments', async (req, res) => {
             const payment = req.body
@@ -84,9 +108,6 @@ async function run() {
                 res.status(500).send('Internal Server Error');
             }
         });
-    
-
-        // delete a specofoc course from 
 
         // user start here
         app.post('/users', async (req, res) => {
@@ -101,15 +122,8 @@ async function run() {
         });
 
         // user information get there
-        app.get('/users', verifyjwt, async (req, res) => {
+        app.get('/users', async (req, res) => {
             const result = await userses.find().toArray()
-            res.send(result)
-        })
-        // get specific user data
-        app.get('/users/:id', async (req, res) => {
-            const id = req.params.id
-            const query = { _id: new ObjectId(id) }
-            const result = await userses.findOne(query)
             res.send(result)
         })
         // update user to admin
@@ -155,6 +169,7 @@ async function run() {
             const result = await instractorClass.insertOne(classes)
             res.send(result)
         })
+
         // instractor classes get method there
         app.get('/instractor-class', verifyjwt, async (req, res) => {
             try {
@@ -166,6 +181,22 @@ async function run() {
                 res.status(401).send({ massage: 'this is error' })
             }
         })
+        // get specific user cards
+        app.get('/singleInstractor', async (req, res) => {
+            try {
+                const email = req.query.email;
+                const query = { instractotEmail: email };
+                const result = await instractorClass.find(query).toArray();
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
+
+
+
         // instractor aprove method there
         app.patch('/instractor-class/aprove/:id', async (req, res) => {
             const id = req.params.id
@@ -190,10 +221,62 @@ async function run() {
             const result = await instractorClass.updateOne(filter, updatedDoc)
             res.send(result)
         })
+        app.patch('/instractor-class/available/:price', async (req, res) => {
+            const classPrice = req.params.price;
+            const filter = { Price: classPrice };
+
+            // Retrieve the current document to get the AvailableSeats value
+            const currentDoc = await instractorClass.findOne(filter);
+            const currentAvailableSeats = currentDoc.AvailableSeats;
+
+            // Calculate the updated value
+            const updatedAvailableSeats = currentAvailableSeats - 1;
+
+            const updatedDoc = {
+                $set: {
+                    AvailableSeats: updatedAvailableSeats,
+                },
+            };
+
+            try {
+                const result = await instractorClass.updateOne(filter, updatedDoc);
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+        app.patch('/instractor-class/total/:price', async (req, res) => {
+            const classPrice = req.params.price;
+            const filter = { Price: classPrice };
+
+            // Retrieve the current document to get the AvailableSeats value
+            const currentDoc = await instractorClass.findOne(filter);
+            const currentAvailableSeats = currentDoc.erroledStudent;
+
+            // Calculate the updated value
+            const updatedAvailableSeats = currentAvailableSeats + 1;
+
+            const updatedDoc = {
+                $set: {
+                    erroledStudent: updatedAvailableSeats,
+                },
+            };
+
+            try {
+                const result = await instractorClass.updateOne(filter, updatedDoc);
+                res.send(result);
+            } catch (error) {
+                console.error(error);
+                res.status(500).send('Internal Server Error');
+            }
+        });
+
         // instractor feedback method there
         app.post('/feedback/:id', async (req, res) => {
             const id = req.params.id
             const feedbackData = req.body.feedbackData
+
             const filter = { _id: new ObjectId(id) }
             const updatedDoc = {
                 $push: {
@@ -268,7 +351,7 @@ async function run() {
         })
         // popular classes data here
         app.get('/popular-classes', async (req, res) => {
-            const result = await classes.find().sort({ totalStudents: -1 }).limit(6).toArray()
+            const result = await instractorClass.find().sort({ erroledStudent: -1 }).limit(6).toArray()
             res.send(result)
 
         })
